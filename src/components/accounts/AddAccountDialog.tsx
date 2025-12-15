@@ -217,7 +217,7 @@ function AddAccountDialog({ onAdd }: AddAccountDialogProps) {
                                                 onClick={handleCopyUrl}
                                             >
                                                 <Copy className="w-3.5 h-3.5" />
-                                                复制授权链接
+                                                {t('accounts.add.oauth.copy_link')}
                                             </button>
                                         )}
                                     </div>

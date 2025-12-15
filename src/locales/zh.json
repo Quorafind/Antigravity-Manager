@@ -94,7 +94,8 @@
                 "recommend": "推荐方式",
                 "desc": "将打开默认浏览器进行 Google 登录授权，自动获取并保存 Token。",
                 "btn_start": "开始 OAuth 授权",
-                "btn_waiting": "正在等待授权..."
+                "btn_waiting": "正在等待授权...",
+                "copy_link": "复制授权链接"
             },
             "token": {
                 "label": "Refresh Token",

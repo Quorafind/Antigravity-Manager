@@ -94,7 +94,8 @@
                 "recommend": "Recommended",
                 "desc": "Opens default browser for Google login to auto-fetch and save Token.",
                 "btn_start": "Start OAuth",
-                "btn_waiting": "Waiting for auth..."
+                "btn_waiting": "Waiting for auth...",
+                "copy_link": "Copy Auth Link"
             },
             "token": {
                 "label": "Refresh Token",
