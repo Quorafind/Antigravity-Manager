@@ -1,5 +1,5 @@
 # Antigravity Tools 🚀
-> Professional AI Account Management & Proxy System (v3.3.3)
+> Professional AI Account Management & Proxy System (v3.3.4)
 
 <div align="center">
   <img src="public/icon.png" alt="Antigravity Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
@@ -9,7 +9,7 @@
   
   <p>
     <a href="https://github.com/lbjlaq/Antigravity-Manager">
-      <img src="https://img.shields.io/badge/Version-3.3.3-blue?style=flat-square" alt="Version">
+      <img src="https://img.shields.io/badge/Version-3.3.4-blue?style=flat-square" alt="Version">
     </a>
     <img src="https://img.shields.io/badge/Tauri-v2-orange?style=flat-square" alt="Tauri">
     <img src="https://img.shields.io/badge/Backend-Rust-red?style=flat-square" alt="Rust">
@@ -159,6 +159,12 @@ print(response.choices[0].message.content)
 
 ## 📝 Developer & Community
 
+    *   **v3.3.4 (2025-12-29)**:
+        - **Major OpenAI/Codex Compatibility Boost (Core Thanks to @llsenyue PR #158)**:
+            - **Fixed Image Recognition**: Fully adapted Codex CLI's `input_image` block parsing and added support for `file://` local paths with automatic Base64 conversion.
+            - **Gemini 400 Error Mitigation**: Implemented automatic merging of consecutive identical role messages, strictly following Gemini's role alternation requirements to eliminate related 400 errors.
+            - **Protocol Stability Enhancements**: Optimized deep JSON Schema cleaning (including physical isolation for `cache_control`) and added context backfilling for `thoughtSignature`.
+            - **Linux Compatibility Fix**: Switched compilation environment to Ubuntu 20.04 (GLIBC 2.31) and reverted to WebKit2GTK 4.0 and libsoup 2.4, resolving startup failures on older Linux distributions due to GLIBC or library version mismatches.
     *   **v3.3.3 (2025-12-29)**:
         - **Account Management Enhancements**:
             - **Subscription Tier Identification**: Integrated automatic detection, labeling, and filtering for account subscription tiers (PRO/ULTRA/FREE).

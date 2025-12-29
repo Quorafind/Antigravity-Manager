@@ -1,5 +1,5 @@
 # Antigravity Tools 🚀
-> 专业的 AI 账号管理与协议反代系统 (v3.3.3)
+> 专业的 AI 账号管理与协议反代系统 (v3.3.4)
 <div align="center">
   <img src="public/icon.png" alt="Antigravity Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
 
@@ -8,7 +8,7 @@
   
   <p>
     <a href="https://github.com/lbjlaq/Antigravity-Manager">
-      <img src="https://img.shields.io/badge/Version-3.3.3-blue?style=flat-square" alt="Version">
+      <img src="https://img.shields.io/badge/Version-3.3.4-blue?style=flat-square" alt="Version">
     </a>
     <img src="https://img.shields.io/badge/Tauri-v2-orange?style=flat-square" alt="Tauri">
     <img src="https://img.shields.io/badge/Backend-Rust-red?style=flat-square" alt="Rust">
@@ -175,6 +175,12 @@ print(response.choices[0].message.content)
 ## 📝 开发者与社区
 
 *   **版本演进 (Changelog)**:
+    *   **v3.3.4 (2025-12-29)**:
+        - **OpenAI/Codex 兼容性大幅增强 (核心致谢 @llsenyue PR #158)**:
+            - **修复图像识别**: 完美适配 Codex CLI 的 `input_image` 块解析，并支持 `file://` 本地路径自动转 Base64 上传。
+            - **Gemini 400 错误治理**: 实现了连续相同角色消息的自动合并，严格遵循 Gemini 角色交替规范，彻底解决此类 400 报错。
+            - **协议稳定性增强**: 优化了 JSON Schema 深度清理（新增对 `cache_control` 的物理隔离）及 `thoughtSignature` 的上下文回填逻辑。
+            - **Linux 兼容性修复**: 将编译环境切换至 Ubuntu 20.04 (GLIBC 2.31)，并切换至 WebKit2GTK 4.0 和 libsoup 2.4，解决了在旧版 Linux 系统上因 GLIBC 版本过高或库缺失导致的无法运行问题。
     *   **v3.3.3 (2025-12-29)**:
         - **账号管理增强**:
             - **订阅等级智能识别**: 新增对账号订阅等级（PRO/ULTRA/FREE）的自动识别、标识与筛选支持。
