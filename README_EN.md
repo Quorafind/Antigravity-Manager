@@ -263,6 +263,7 @@ print(response.choices[0].message.content)
 
 <a href="https://github.com/lbjlaq"><img src="https://github.com/lbjlaq.png" width="50px" style="border-radius: 50%;" alt="lbjlaq"/></a>
 <a href="https://github.com/XinXin622"><img src="https://github.com/XinXin622.png" width="50px" style="border-radius: 50%;" alt="XinXin622"/></a>
+<a href="https://github.com/llsenyue"><img src="https://github.com/llsenyue.png" width="50px" style="border-radius: 50%;" alt="llsenyue"/></a>
 
 Special thanks to all developers who have contributed to this project.
 *   **License**: **CC BY-NC-SA 4.0**. Strictly for non-commercial use.
