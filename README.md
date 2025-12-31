@@ -1,5 +1,5 @@
 # Antigravity Tools 🚀
-> 专业的 AI 账号管理与协议反代系统 (v3.3.7)
+> 专业的 AI 账号管理与协议反代系统 (v3.3.8)
 <div align="center">
   <img src="public/icon.png" alt="Antigravity Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
 
@@ -8,7 +8,7 @@
   
   <p>
     <a href="https://github.com/lbjlaq/Antigravity-Manager">
-      <img src="https://img.shields.io/badge/Version-3.3.7-blue?style=flat-square" alt="Version">
+      <img src="https://img.shields.io/badge/Version-3.3.8-blue?style=flat-square" alt="Version">
     </a>
     <img src="https://img.shields.io/badge/Tauri-v2-orange?style=flat-square" alt="Tauri">
     <img src="https://img.shields.io/badge/Backend-Rust-red?style=flat-square" alt="Rust">
@@ -175,6 +175,18 @@ print(response.choices[0].message.content)
 ## 📝 开发者与社区
 
 *   **版本演进 (Changelog)**:
+    *   **v3.3.8 (2025-12-31)**:
+        - **账号异常自动处理 (核心致谢 @salacoste PR #203)**:
+            - **自动禁用失效账号**: 当 Google OAuth 刷新令牌失效（触发 `invalid_grant` 错误）时，系统会自动将该账号标记为禁用状态，防止代理服务因重复尝试故障账号而产生 5xx 错误。
+            - **持久化状态管理**: 账号的禁用状态会自动保存到磁盘，系统重启后仍可保持。同时优化了加载逻辑，跳过所有已禁用的账号。
+            - **智能自动恢复**: 用户在 UI 界面手动更新账号令牌后，系统会自动重新启用该账号。
+            - **文档完善**: 添加了针对 `invalid_grant` 异常处理机制的详细说明文档。
+        - **账号配额管理与模型分级路由 (精细化运营优化)**:
+            - **后台任务智能降级**: 自动识别 Claude CLI/Agent 的后台任务（标题生成、摘要、建议等），并强制路由至低成本 Flash 模型（Lite 优先），极大节省高级模型配额。
+            - **账号分级路由 (ULTRA > PRO > FREE)**: 根据账号配额重置频率自动排序。优先消耗每小时重置的高级账号，将重置频率低的 FREE 账号作为最后的保险库。
+            - **原子化并发锁定**: 优化了 TokenManager 的会话锁定逻辑。在高并发并发（如 Agent 模式）下，确保同一会话的请求能稳定锁定在同一账号，彻底解决轮询暴走问题。
+            - **关键词库扩展**: 内置 30+ 种高频后台指令特征库，覆盖 5 大类主流 Agent 后台操作，识别率提升至 95% 以上。
+
     *   **v3.3.7 (2025-12-30)**:
         - **Proxy 核心稳定性修复 (核心致谢 @llsenyue PR #191)**:
             - **JSON Schema 深度硬化**: 实现了对工具调用 Schema 的递归平坦化与清理，自动将 Gemini 不支持的校验约束（如 `pattern`）迁移至描述字段，彻底解决 Schema 拒绝问题。

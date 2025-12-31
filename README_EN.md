@@ -1,5 +1,5 @@
 # Antigravity Tools 🚀
-> Professional AI Account Management & Proxy System (v3.3.7)
+> Professional AI Account Management & Proxy System (v3.3.8)
 
 <div align="center">
   <img src="public/icon.png" alt="Antigravity Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
@@ -9,7 +9,7 @@
   
   <p>
     <a href="https://github.com/lbjlaq/Antigravity-Manager">
-      <img src="https://img.shields.io/badge/Version-3.3.7-blue?style=flat-square" alt="Version">
+      <img src="https://img.shields.io/badge/Version-3.3.8-blue?style=flat-square" alt="Version">
     </a>
     <img src="https://img.shields.io/badge/Tauri-v2-orange?style=flat-square" alt="Tauri">
     <img src="https://img.shields.io/badge/Backend-Rust-red?style=flat-square" alt="Rust">
@@ -158,6 +158,18 @@ print(response.choices[0].message.content)
 ```
 
 ## 📝 Developer & Community
+
+    *   **v3.3.8 (2025-12-31)**:
+        - **Automatic Account Exception Handling (Core Thanks to @salacoste PR #203)**:
+            - **Auto-disable Invalid Accounts**: Automatically marks accounts as disabled when Google OAuth refresh tokens become invalid (`invalid_grant`), preventing proxy failures caused by repeated attempts to use broken accounts.
+            - **Persistent State Management**: Disabling state is saved to disk and persists across restarts. Optimized loading logic to skip disabled accounts.
+            - **Smart Auto-recovery**: Accounts are automatically re-enabled when the user manually updates the refresh or access tokens in the UI.
+            - **Documentation**: Added detailed documentation for the invalid grant handling mechanism.
+        - **Quota Management & Intelligent Routing (Fine-grained Optimization)**:
+            - **Background Task Smart Downgrading**: Automatically detects Claude CLI/Agent background tasks (title generation, summary, suggestions, etc.) and routes them to low-cost Flash models, significantly preserving premium quota.
+            - **Tiered Account Routing (ULTRA > PRO > FREE)**: Implemented priority-based routing. The system now prioritizes fast-resetting ULTRA accounts, reserving FREE accounts as a final fallback.
+            - **Atomic Concurrency Locking**: Enhanced session locking in `TokenManager`. Ensures consistent account selection for concurrent requests in Agent mode, preventing excessive rotation.
+            - **Expanded Keyword Library**: Integrated 30+ intent-based keywords across 5 categories for background tasks, improving detection accuracy to over 95%.
 
     *   **v3.3.7 (2025-12-30)**:
         - **Proxy Core Stability Fixes (Core Thanks to @llsenyue PR #191)**:

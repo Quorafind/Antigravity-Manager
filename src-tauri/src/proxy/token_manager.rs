@@ -15,6 +15,7 @@ pub struct ProxyToken {
     pub email: String,
     pub account_path: PathBuf,  // 账号文件路径，用于更新
     pub project_id: Option<String>,
+    pub subscription_tier: Option<String>, // "FREE" | "PRO" | "ULTRA"
 }
 
 pub struct TokenManager {
@@ -134,6 +135,12 @@ impl TokenManager {
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
         
+        // 【新增】提取订阅等级 (subscription_tier 为 "FREE" | "PRO" | "ULTRA")
+        let subscription_tier = account.get("quota")
+            .and_then(|q| q.get("subscription_tier"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        
         Ok(Some(ProxyToken {
             account_id,
             access_token,
@@ -143,6 +150,7 @@ impl TokenManager {
             email,
             account_path: path.clone(),
             project_id,
+            subscription_tier,
         }))
     }
     
@@ -150,11 +158,23 @@ impl TokenManager {
     /// 参数 `_quota_group` 用于区分 "claude" vs "gemini" 组
     /// 参数 `force_rotate` 为 true 时将忽略锁定，强制切换账号
     pub async fn get_token(&self, quota_group: &str, force_rotate: bool) -> Result<(String, String, String), String> {
-        let tokens_snapshot: Vec<ProxyToken> = self.tokens.iter().map(|e| e.value().clone()).collect();
+        let mut tokens_snapshot: Vec<ProxyToken> = self.tokens.iter().map(|e| e.value().clone()).collect();
         let total = tokens_snapshot.len();
         if total == 0 {
             return Err("Token pool is empty".to_string());
         }
+
+        // ===== 【优化】根据订阅等级排序 (优先级: ULTRA > PRO > FREE) =====
+        // 理由: ULTRA/PRO 重置快，优先消耗；FREE 重置慢，用于兜底
+        tokens_snapshot.sort_by(|a, b| {
+            let tier_priority = |tier: &Option<String>| match tier.as_deref() {
+                Some("ULTRA") => 0,
+                Some("PRO") => 1,
+                Some("FREE") => 2,
+                _ => 3,
+            };
+            tier_priority(&a.subscription_tier).cmp(&tier_priority(&b.subscription_tier))
+        });
 
         let mut attempted: HashSet<String> = HashSet::new();
         let mut last_error: Option<String> = None;
@@ -162,11 +182,14 @@ impl TokenManager {
         for attempt in 0..total {
             let rotate = force_rotate || attempt > 0;
 
-            // 1. 检查时间窗口锁定 (60秒内强制复用上一个账号)
-            // 优化策略: 画图请求 (image_gen) 默认不锁定，以最大化并发能力
+            // ===== 【优化】原子化锁定检查与选择 =====
             let mut target_token: Option<ProxyToken> = None;
+            
             if !rotate && quota_group != "image_gen" {
-                let last_used = self.last_used_account.lock().await;
+                // 在锁内一站式完成：1. 检查锁定 2. 选择新账号 3. 更新锁定
+                let mut last_used = self.last_used_account.lock().await;
+                
+                // A. 尝试复用锁定账号
                 if let Some((account_id, last_time)) = &*last_used {
                     if last_time.elapsed().as_secs() < 60 && !attempted.contains(account_id) {
                         if let Some(found) = tokens_snapshot.iter().find(|t| &t.account_id == account_id) {
@@ -175,39 +198,46 @@ impl TokenManager {
                         }
                     }
                 }
-            }
-
-            // 2. 如果没有锁定、锁定失效或强制轮换，则进行轮询记录并更新锁定信息
-            let mut token = if let Some(t) = target_token {
-                t
+                
+                // B. 若无锁定，则轮询选择新账号并立即建立锁定
+                if target_token.is_none() {
+                    let start_idx = self.current_index.fetch_add(1, Ordering::SeqCst) % total;
+                    for offset in 0..total {
+                        let idx = (start_idx + offset) % total;
+                        let candidate = &tokens_snapshot[idx];
+                        if attempted.contains(&candidate.account_id) {
+                            continue;
+                        }
+                        target_token = Some(candidate.clone());
+                        // 【关键】在锁内立即更新，确保后续并发请求能看到
+                        *last_used = Some((candidate.account_id.clone(), std::time::Instant::now()));
+                        tracing::info!("切换到新账号并建立 60s 锁定: {}", candidate.email);
+                        break;
+                    }
+                }
+                // 锁在此处自动释放
             } else {
+                // 画图请求或强制轮换，不使用 session 锁定
                 let start_idx = self.current_index.fetch_add(1, Ordering::SeqCst) % total;
-                let mut selected: Option<ProxyToken> = None;
                 for offset in 0..total {
                     let idx = (start_idx + offset) % total;
                     let candidate = &tokens_snapshot[idx];
                     if attempted.contains(&candidate.account_id) {
                         continue;
                     }
-                    selected = Some(candidate.clone());
+                    target_token = Some(candidate.clone());
+                    
+                    if rotate {
+                        tracing::info!("强制切换到账号: {}", candidate.email);
+                    }
                     break;
                 }
-                let selected_token = selected.ok_or_else(|| {
-                    last_error
-                        .clone()
-                        .unwrap_or_else(|| "All accounts exhausted".to_string())
-                })?;
+            }
+            
+            let mut token = target_token.ok_or_else(|| {
+                last_error.clone().unwrap_or_else(|| "All accounts exhausted".to_string())
+            })?;
 
-                // 更新最后使用的账号及时间 (如果是普通对话请求)
-                if quota_group != "image_gen" {
-                    let mut last_used = self.last_used_account.lock().await;
-                    *last_used = Some((selected_token.account_id.clone(), std::time::Instant::now()));
-                }
-
-                let action_msg = if rotate { "强制切换" } else { "切换" };
-                tracing::info!("{}到账号: {}", action_msg, selected_token.email);
-                selected_token
-            };
         
             // 3. 检查 token 是否过期（提前5分钟刷新）
             let now = chrono::Utc::now().timestamp();
