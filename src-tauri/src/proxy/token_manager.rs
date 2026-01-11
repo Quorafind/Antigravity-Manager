@@ -591,6 +591,7 @@ impl TokenManager {
             status,
             retry_after_header,
             error_body,
+            None,
         );
     }
     
@@ -786,6 +787,7 @@ impl TokenManager {
                 status,
                 retry_after_header,
                 error_body,
+                model.map(|s| s.to_string()),
             );
             return;
         }
@@ -824,6 +826,7 @@ impl TokenManager {
             status,
             retry_after_header,
             error_body,
+            model.map(|s| s.to_string()),
         );
     }
 

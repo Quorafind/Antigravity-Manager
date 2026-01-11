@@ -673,46 +673,72 @@ pub async fn handle_messages(
             if actual_stream {
                 let stream = response.bytes_stream();
                 let gemini_stream = Box::pin(stream);
-                let claude_stream = create_claude_sse_stream(gemini_stream, trace_id.clone(), email.clone());
+                let mut claude_stream = create_claude_sse_stream(gemini_stream, trace_id.clone(), email.clone());
 
-                // 转换为 Bytes stream
-                let sse_stream = claude_stream.map(|result| -> Result<Bytes, std::io::Error> {
-                    match result {
-                        Ok(bytes) => Ok(bytes),
-                        Err(e) => Ok(Bytes::from(format!("data: {{\"error\":\"{}\"}}\n\n", e))),
-                    }
-                });
+                // [FIX #530/#529] Peek first chunk to detect empty response and allow retry
+                // If the stream is empty or fails immediately, we should retry instead of sending 200 OK + empty body
+                let first_chunk = claude_stream.next().await;
 
-                // 判断客户端期望的格式
-                if client_wants_stream {
-                    // 客户端本就要 Stream，直接返回 SSE
-                    return Response::builder()
-                        .status(StatusCode::OK)
-                        .header(header::CONTENT_TYPE, "text/event-stream")
-                        .header(header::CACHE_CONTROL, "no-cache")
-                        .header(header::CONNECTION, "keep-alive")
-                        .header("X-Account-Email", &email)
-                        .header("X-Mapped-Model", &request_with_mapped.model)
-                        .body(Body::from_stream(sse_stream))
-                        .unwrap();
-                } else {
-                    // 客户端要非 Stream，需要收集完整响应并转换为 JSON
-                    use crate::proxy::mappers::claude::collect_stream_to_json;
-                    
-                    match collect_stream_to_json(sse_stream).await {
-                        Ok(full_response) => {
-                            info!("[{}] ✓ Stream collected and converted to JSON", trace_id);
+                match first_chunk {
+                    Some(Ok(bytes)) => {
+                        if bytes.is_empty() {
+                            tracing::warn!("[{}] Empty first chunk received, treating as Empty Response and retrying...", trace_id);
+                            last_error = "Empty response stream (0 bytes)".to_string();
+                            continue;
+                        }
+                        
+                        // We have data! Construct the combined stream
+                        let stream_rest = claude_stream;
+                        let combined_stream = Box::pin(futures::stream::once(async move { Ok(bytes) })
+                            .chain(stream_rest.map(|result| -> Result<Bytes, std::io::Error> {
+                                match result {
+                                    Ok(b) => Ok(b),
+                                    Err(e) => Ok(Bytes::from(format!("data: {{\"error\":\"{}\"}}\n\n", e))),
+                                }
+                            })));
+
+                        // 判断客户端期望的格式
+                        if client_wants_stream {
+                            // 客户端本就要 Stream，直接返回 SSE
                             return Response::builder()
                                 .status(StatusCode::OK)
-                                .header(header::CONTENT_TYPE, "application/json")
+                                .header(header::CONTENT_TYPE, "text/event-stream")
+                                .header(header::CACHE_CONTROL, "no-cache")
+                                .header(header::CONNECTION, "keep-alive")
                                 .header("X-Account-Email", &email)
                                 .header("X-Mapped-Model", &request_with_mapped.model)
-                                .body(Body::from(serde_json::to_string(&full_response).unwrap()))
+                                .body(Body::from_stream(combined_stream))
                                 .unwrap();
+                        } else {
+                            // 客户端要非 Stream，需要收集完整响应并转换为 JSON
+                            use crate::proxy::mappers::claude::collect_stream_to_json;
+                            
+                            match collect_stream_to_json(combined_stream).await {
+                                Ok(full_response) => {
+                                    info!("[{}] ✓ Stream collected and converted to JSON", trace_id);
+                                    return Response::builder()
+                                        .status(StatusCode::OK)
+                                        .header(header::CONTENT_TYPE, "application/json")
+                                        .header("X-Account-Email", &email)
+                                        .header("X-Mapped-Model", &request_with_mapped.model)
+                                        .body(Body::from(serde_json::to_string(&full_response).unwrap()))
+                                        .unwrap();
+                                }
+                                Err(e) => {
+                                    return (StatusCode::INTERNAL_SERVER_ERROR, format!("Stream collection error: {}", e)).into_response();
+                                }
+                            }
                         }
-                        Err(e) => {
-                            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Stream collection error: {}", e)).into_response();
-                        }
+                    },
+                    Some(Err(e)) => {
+                        tracing::warn!("[{}] Stream error on first chunk: {}, retrying...", trace_id, e);
+                        last_error = format!("Stream error: {}", e);
+                        continue;
+                    },
+                    None => {
+                        tracing::warn!("[{}] Stream ended immediately (Empty Response), retrying...", trace_id);
+                        last_error = "Empty response stream (None)".to_string();
+                        continue;
                     }
                 }
             } else {

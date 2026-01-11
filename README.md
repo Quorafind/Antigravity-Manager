@@ -238,9 +238,17 @@ print(response.choices[0].message.content)
             - **逻辑闭环**: 确保了即使在异常系统环境下，用户也能通过重新点击“启用/禁用”来强制修复并同步自启状态。
             - **影响范围**: 彻底解决了从 v3.2.7 以来长期困扰 Windows 用户的“无法禁用/设置不生效”问题。
         - **API 监控看板增强 (API Monitor Enhancement) - 补全失败请求记录与 Gemini 统计 (修复 Issue #504)**:
-            - **失败请求账号归属**: 修复了当请求遇到 429、403 或 500 等错误时账号信息丢失的问题。通过在所有协议处理器（Gemini/OpenAI/Claude）的错误响应中注入 `X-Account-Email` 头，确保监控面板能准确追溯失败请求关联的账号。
             - **Gemini Token 统计兼容**: 增强了监控中间件对 Gemini API 方言的支持，能够自动识别 `usageMetadata` 节点并映射 `promptTokenCount` 等原生字段。
             - **影响范围**: 显著提升了监控面板在故障排查时的准确性，确保了跨协议 Token 统计的一致性。
+        - **Claude 协议核心增强 (Claude Protocol Enhancement)**:
+            - **弹性恢复引擎 (Elastic Recovery Engine)**: 
+                - **空流重试**: 智能识别并自动重试上游返回的空数据流，彻底解决网络抖动导致的请求失败。
+                - **断点自愈**: 自动检测工具调用链的断裂状态（Missing ToolResult），并实施主动修复，防止因客户端中断导致的上下文同步错误 (400)。
+            - **智能上下文优化 (Smart Context Optimization)**:
+                - **资源瘦身**: 自动清洗历史记录中的冗余 Base64 图片数据与超长日志，在保持上下文连贯的同时大幅降低 Token 消耗。
+                - **签名兼容**: 实现了双向签名转换层，完美适配各版本 Claude 客户端的 Thinking 签名校验机制。
+            - **精细化限流 (Model-Level Rate Limiting)**:
+                - **模型隔离**: 429 限流策略升级为“账号+模型”双维度锁定。Gemini Flash 的频控不再影响 Pro/Ultra 模型的使用，显著提升账号利用率。
     *   **v3.3.20 (2026-01-09)**:
         - **请求超时配置优化 (Request Timeout Enhancement) - 支持长时间文本处理 (核心致谢 @xiaoyaocp Issue #473)**:
             - **提升超时上限**: 将服务配置中的请求超时最大值从 600 秒（10 分钟）提升到 3600 秒（1 小时）。
