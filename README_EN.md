@@ -184,6 +184,8 @@ print(response.choices[0].message.content)
         - **Compilation Error Fixes**:
             - Fixed parameter naming and mutability issues in `process.rs`.
             - Cleaned up unused import and variable warnings.
+        - **Internationalization (i18n)**:
+            - **Traditional Chinese Support**: Added Traditional Chinese localization support (Thank you @audichuang PR #577).
         - **Impact**: This update significantly improves multi-turn conversation stability for thinking models like Claude 4.5 Opus and Gemini 3 Pro, especially in scenarios using MCP tools and long sessions.
     *   **v3.3.24 (2026-01-12)**:
         - **UI Interaction Improvements**:
