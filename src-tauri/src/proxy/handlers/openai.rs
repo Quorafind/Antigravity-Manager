@@ -1666,7 +1666,7 @@ pub async fn handle_images_generations(
         let image_config = image_config.clone(); // 使用解析后的完整配置
         let _response_format = response_format.to_string();
 
-        let model_to_use = "gemini-3-pro-image".to_string();
+        let model_to_use = model.to_string();
 
         tasks.push(tokio::spawn(async move {
             let mut last_error = String::new();
@@ -1674,7 +1674,7 @@ pub async fn handle_images_generations(
             for attempt in 0..max_attempts {
                 // 4.1 获取 Token
                 let (access_token, project_id, email, account_id, _wait_ms) = match token_manager
-                    .get_token("image_gen", attempt > 0, None, "dall-e-3")
+                    .get_token("image_gen", attempt > 0, None, &model_to_use)
                     .await
                 {
                     Ok(t) => t,
@@ -2071,7 +2071,7 @@ pub async fn handle_images_edits(
             for attempt in 0..max_attempts {
                 // 4.1 获取 Token
                 let (access_token, project_id, email, account_id, _wait_ms) = match token_manager
-                    .get_token("image_gen", attempt > 0, None, "dall-e-3")
+                    .get_token("image_gen", attempt > 0, None, &model)
                     .await
                 {
                     Ok(t) => t,
